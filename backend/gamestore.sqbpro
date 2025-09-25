@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?><sqlb_project><db path="gamestore.db" readonly="0" foreign_keys="1" case_sensitive_like="0" temp_store="0" wal_autocheckpoint="1000" synchronous="2"/><attached/><window><main_tabs open="structure pragmas browser query" current="3"/></window><tab_structure><column_width id="0" width="300"/><column_width id="1" width="0"/><column_width id="2" width="100"/><column_width id="3" width="2230"/><column_width id="4" width="0"/><expanded_item id="0" parent="1"/><expanded_item id="1" parent="1"/><expanded_item id="2" parent="1"/><expanded_item id="3" parent="1"/></tab_structure><tab_browse><table title="order_items" custom_title="0" dock_id="1" table="4,11:mainorder_items"/><dock_state state="000000ff00000000fd00000001000000020000000000000000fc0100000001fb000000160064006f0063006b00420072006f00770073006500310100000000ffffffff0000011800ffffff000000000000000000000004000000040000000800000008fc00000000"/><default_encoding codec=""/><browse_table_settings/></tab_browse><tab_sql><sql name="SQL 1*">-- GameStore E-commerce Database Schema
+-- SQLite Database Structure
+
+-- Tabela de usuários
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    role TEXT DEFAULT 'client' CHECK(role IN ('client', 'admin')),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabela de produtos
+CREATE TABLE IF NOT EXISTS products (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    description TEXT,
+    price REAL NOT NULL CHECK(price &gt;= 0),
+    image_url TEXT,
+    stock INTEGER DEFAULT 0 CHECK(stock &gt;= 0),
+    category TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabela de pedidos
+CREATE TABLE IF NOT EXISTS orders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    total REAL NOT NULL CHECK(total &gt;= 0),
+    status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'processing', 'completed', 'cancelled')),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+);
+
+-- Tabela de itens do pedido
+CREATE TABLE IF NOT EXISTS order_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id INTEGER NOT NULL,
+    product_id INTEGER NOT NULL,
+    quantity INTEGER NOT NULL CHECK(quantity &gt; 0),
+    price REAL NOT NULL CHECK(price &gt;= 0),
+    FOREIGN KEY (order_id) REFERENCES orders (id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE CASCADE
+);
+
+-- Índices para melhor performance
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
+CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
+CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at);
+CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_product_id ON order_items(product_id);
+
+-- Inserir usuário administrador padrão
+INSERT OR IGNORE INTO users (id, name, email, password, role) VALUES 
+(1, 'Administrador', 'admin@gamestore.com', '$2b$10$rQKQFQxCJvd5K5PcJQZQbuQKGIvSzCjAQZJ5fLQJvXKJvXKJvXKJv', 'admin');
+
+-- Inserir produtos de exemplo
+INSERT OR IGNORE INTO products (name, description, price, image_url, stock, category) VALUES 
+('PlayStation 5', 'Console de nova geração da Sony com tecnologia de ponta, SSD ultrarrápido e controle DualSense com feedback tátil.', 4999.99, '', 10, 'Console'),
+('Xbox Series X', 'Console mais poderoso da Microsoft com 12 teraflops, 1TB SSD e suporte para 4K/120fps.', 4699.99, '', 8, 'Console'),
+('Nintendo Switch', 'Console híbrido portátil da Nintendo, perfeito para jogar em casa ou na rua.', 2999.99, '', 15, 'Console'),
+('Nintendo Switch OLED', 'Versão aprimorada do Switch com tela OLED de 7 polegadas e cores vibrantes.', 3499.99, '', 12, 'Console'),
+('The Last of Us Part II', 'Sequência épica exclusiva do PlayStation que continua a jornada emocional de Ellie.', 199.99, '', 25, 'Jogo'),
+('God of War Ragnarök', 'A conclusão nórdica da saga de Kratos e Atreus em uma aventura mitológica épica.', 249.99, '', 20, 'Jogo'),
+('Super Mario Odyssey', 'Mario embarca em uma aventura 3D pelo mundo com seu novo companheiro Cappy.', 299.99, '', 18, 'Jogo'),
+('The Legend of Zelda: Breath of the Wild', 'Aventura em mundo aberto que revolucionou a franquia Zelda.', 299.99, '', 22, 'Jogo'),
+('Halo Infinite', 'O Master Chief retorna em uma nova aventura épica no universo Halo.', 249.99, '', 15, 'Jogo'),
+('Forza Horizon 5', 'Corridas em mundo aberto no México com gráficos deslumbrantes.', 199.99, '', 20, 'Jogo'),
+('Controle DualSense', 'Controle sem fio para PlayStation 5 com feedback tátil e gatilhos adaptativos.', 399.99, '', 30, 'Acessório'),
+('Controle Xbox Wireless', 'Controle sem fio para Xbox Series X/S e Xbox One com design ergonômico.', 349.99, '', 25, 'Acessório'),
+('Pro Controller Switch', 'Controle profissional para Nintendo Switch com maior precisão e conforto.', 399.99, '', 20, 'Acessório'),
+('Headset Pulse 3D', 'Headset sem fio para PlayStation 5 com áudio 3D imersivo.', 599.99, '', 15, 'Acessório'),
+('SSD Externo 1TB', 'Armazenamento adicional para expandir a capacidade dos consoles.', 899.99, '', 12, 'Acessório');
+
+-- Queries úteis para relatórios e análises
+
+-- Visualizar usuários por tipo
+-- SELECT role, COUNT(*) as total FROM users GROUP BY role;
+
+-- Produtos mais vendidos
+-- SELECT p.name, SUM(oi.quantity) as total_sold 
+-- FROM products p 
+-- JOIN order_items oi ON p.id = oi.product_id 
+-- GROUP BY p.id, p.name 
+-- ORDER BY total_sold DESC;
+
+-- Faturamento por período
+-- SELECT DATE(created_at) as data, SUM(total) as faturamento 
+-- FROM orders 
+-- WHERE status = 'completed' 
+-- GROUP BY DATE(created_at) 
+-- ORDER BY data DESC;
+
+-- Produtos com estoque baixo (menos de 5 unidades)
+-- SELECT name, stock FROM products WHERE stock &lt; 5 ORDER BY stock ASC;
+
+-- Pedidos por cliente
+-- SELECT u.name, COUNT(o.id) as total_pedidos, SUM(o.total) as valor_total
+-- FROM users u 
+-- LEFT JOIN orders o ON u.id = o.user_id 
+-- WHERE u.role = 'client'
+-- GROUP BY u.id, u.name 
+-- ORDER BY valor_total DESC;</sql><current_tab id="0"/></tab_sql></sqlb_project>
