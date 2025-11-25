@@ -44,7 +44,10 @@ jobs:
       - name: Instalar dependências do frontend
         working-directory: frontend
         run: npm install
-
+          
+      - name: Fix permissions
+        run: chmod +x ./node_modules/.bin/react-scripts
+          
       - name: Rodar testes do frontend
         working-directory: frontend
         run: npm test -- --watchAll=false
