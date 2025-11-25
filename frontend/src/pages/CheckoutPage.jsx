@@ -2,11 +2,11 @@ import React, { useState } from "react";
 import { useCart } from "../hooks/useCart";
 import { useAuth } from "../hooks/useAuth";
 import { useRouter } from "../hooks/useRouter";
-import { API_BASE } from "../api/config";
+import { createOrder } from "../config/api";
 
 export default function CheckoutPage() {
   const { cart, clearCart, total } = useCart();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const { navigate } = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -35,24 +35,18 @@ export default function CheckoutPage() {
   const handleCheckout = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE}/orders`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_id: user.id,
-          total,
-          items: cart.map((item) => ({
-            product_id: item.id,
-            quantity: item.quantity,
-            price: item.price,
-          })),
-        }),
-      });
 
-      if (!response.ok) throw new Error("Erro ao finalizar pedido.");
+      const items = cart.map((item) => ({
+        product_id: item.id,
+        quantity: item.quantity,
+        price: item.price,
+      }));
+
+      const data = await createOrder(token, items, total);
 
       clearCart();
-      navigate("/orders");
+      alert(`Pedido realizado com sucesso! #${data.orderId}`);
+      navigate("/my-orders");
     } catch (error) {
       alert("Não foi possível finalizar a compra. Tente novamente.");
       console.error(error);

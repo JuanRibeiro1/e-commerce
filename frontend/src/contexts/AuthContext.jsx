@@ -1,37 +1,74 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { registerUser, login as apiLogin } from "../config/api";
 
-// ✅ agora exportamos o AuthContext também
 export const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [token, setToken] = useState(localStorage.getItem("token"));
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("user");
-    if (savedUser) setUser(JSON.parse(savedUser));
+    const storedToken = localStorage.getItem("token");
+    if (storedToken) {
+      setToken(storedToken);
+    }
+    setLoading(false);
   }, []);
 
-  const login = (userData) => {
-    setUser(userData);
-    localStorage.setItem("user", JSON.stringify(userData));
+  const login = async (email, password) => {
+    try {
+      const data = await apiLogin(email, password);
+      setUser(data.user);
+      setToken(data.token);
+      localStorage.setItem("token", data.token);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const register = async (name, email, password) => {
+    try {
+      const data = await registerUser(name, email, password);
+      setUser(data.user);
+      setToken(data.token);
+      localStorage.setItem("token", data.token);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem("user");
+    setToken(null);
+    localStorage.removeItem("token");
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        login,
+        register,
+        logout,
+        loading,
+        token,
+        isAuthenticated: !!user,
+        isAdmin: user?.role === "admin",
+        isClient: user?.role === "client",
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
 }
 
-// Hook oficial
-export function useAuthContext() {
-  return useContext(AuthContext);
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth deve ser usado dentro de AuthProvider");
+  }
+  return context;
 }
-
-// ✅ alias para manter compatibilidade
-export const useAuth = useAuthContext;

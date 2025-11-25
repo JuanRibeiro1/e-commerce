@@ -1,0 +1,20 @@
+version: "3.9"
+
+services:
+  backend:
+    build: ./backend
+    container_name: ecommerce_backend
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./backend/database.sqlite:/app/database.sqlite
+    environment:
+      - NODE_ENV=production
+
+  frontend:
+    build: ./frontend
+    container_name: ecommerce_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend

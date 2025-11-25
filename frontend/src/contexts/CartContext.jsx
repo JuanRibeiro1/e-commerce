@@ -1,56 +1,76 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
-// ✅ agora exportamos o CartContext também
-export const CartContext = createContext();
+const CartContext = createContext();
 
-export function CartProvider({ children }) {
+export const useCart = () => {
+  const context = useContext(CartContext);
+  if (!context) {
+    throw new Error('useCart deve ser usado dentro de CartProvider');
+  }
+  return context;
+};
+
+export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
 
   useEffect(() => {
-    const savedCart = localStorage.getItem("cart");
-    if (savedCart) setCart(JSON.parse(savedCart));
+    const savedCart = localStorage.getItem('cart');
+    if (savedCart) {
+      try {
+        setCart(JSON.parse(savedCart));
+      } catch (error) {
+        console.error('Erro ao carregar carrinho:', error);
+      }
+    }
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("cart", JSON.stringify(cart));
+    localStorage.setItem('cart', JSON.stringify(cart));
   }, [cart]);
 
-  const addToCart = (product) => {
-    setCart((prev) => {
-      const exists = prev.find((item) => item.id === product.id);
-      if (exists) {
-        return prev.map((item) =>
+  const addToCart = (product, quantity = 1) => {
+    setCart(prev => {
+      const existing = prev.find(item => item.id === product.id);
+      if (existing) {
+        return prev.map(item =>
           item.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
+            ? { ...item, quantity: item.quantity + quantity }
             : item
         );
       }
-      return [...prev, { ...product, quantity: 1 }];
+      return [...prev, { ...product, quantity }];
     });
   };
 
-  const removeFromCart = (id) => {
-    setCart((prev) => prev.filter((item) => item.id !== id));
+  const removeFromCart = (productId) => {
+    setCart(prev => prev.filter(item => item.id !== productId));
   };
 
-  const clearCart = () => setCart([]);
+  const updateQuantity = (productId, quantity) => {
+    if (quantity <= 0) {
+      removeFromCart(productId);
+      return;
+    }
+    setCart(prev =>
+      prev.map(item =>
+        item.id === productId ? { ...item, quantity } : item
+      )
+    );
+  };
 
-  const total = cart.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
+  const getTotal = () => {
+    return cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  };
+
+  const clearCart = () => {
+    setCart([]);
+  };
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, clearCart, total }}>
+    <CartContext.Provider value={{
+      cart, addToCart, removeFromCart, updateQuantity, getTotal, clearCart
+    }}>
       {children}
     </CartContext.Provider>
   );
-}
-
-// Hook oficial
-export function useCartContext() {
-  return useContext(CartContext);
-}
-
-// ✅ alias para manter compatibilidade com o resto do projeto
-export const useCart = useCartContext;
+};

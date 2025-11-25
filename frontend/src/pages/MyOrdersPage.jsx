@@ -1,59 +1,78 @@
-import React, { useEffect, useState } from "react";
-import { API_BASE } from "../api/config";
-import { useAuth } from "../hooks/useAuth";
-import Loading from "../components/Loading";
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import Loading from '../components/Loading';
 
-export default function MyOrdersPage() {
-  const { user } = useAuth();
+const API_BASE = 'http://localhost:3001/api/orders';
+
+const MyOrdersPage = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { token } = useAuth();
 
   useEffect(() => {
-    if (!user) return;
-    fetch(`${API_BASE}/orders?userId=${user.id}`)
+    fetch(`${API_BASE}/orders`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
       .then(res => res.json())
-      .then(data => setOrders(data))
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [user]);
-
-  if (!user)
-    return (
-      <p className="text-center mt-6">
-        Faça login para visualizar seus pedidos.
-      </p>
-    );
+      .then(data => {
+        setOrders(data);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [token]);
 
   if (loading) return <Loading />;
 
-  if (orders.length === 0)
-    return <p className="text-center mt-6">Você ainda não fez nenhum pedido.</p>;
-
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <h2 className="text-2xl font-bold mb-4">Meus Pedidos</h2>
-      <ul className="space-y-4">
-        {orders.map(order => (
-          <li key={order.id} className="border p-4 rounded-lg shadow">
-            <div className="flex justify-between">
-              <span className="font-bold">Pedido #{order.id}</span>
-              <span className="text-sm text-gray-500">
-                {new Date(order.date).toLocaleDateString()}
-              </span>
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold mb-6">Meus Pedidos</h1>
+      
+      {orders.length === 0 ? (
+        <div className="text-center py-8">
+          <p className="text-gray-600 mb-4">Você ainda não fez nenhum pedido</p>
+          <Link to="/" className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700">
+            Fazer Compras
+          </Link>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {orders.map(order => (
+            <div key={order.id} className="bg-white p-6 rounded-lg shadow">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold">Pedido #{order.id}</h3>
+                  <p className="text-gray-600">
+                    {new Date(order.created_at).toLocaleDateString('pt-BR')}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-2xl font-bold text-green-600">
+                    R$ {order.total.toFixed(2)}
+                  </p>
+                  <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm">
+                    {order.status}
+                  </span>
+                </div>
+              </div>
+              
+              {order.items && (
+                <div className="space-y-2">
+                  <h4 className="font-medium">Itens:</h4>
+                  {order.items.map(item => (
+                    <div key={item.id} className="flex justify-between items-center text-sm">
+                      <span>{item.product_name} x {item.quantity}</span>
+                      <span>R$ {(item.price * item.quantity).toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-            <ul className="mt-2 pl-4 list-disc">
-              {order.items.map(item => (
-                <li key={item.productId}>
-                  {item.name} (x{item.quantity})
-                </li>
-              ))}
-            </ul>
-            <p className="font-bold mt-2">
-              Total: R$ {order.total.toFixed(2)}
-            </p>
-          </li>
-        ))}
-      </ul>
+          ))}
+        </div>
+      )}
     </div>
   );
-}
+};
+
+export default MyOrdersPage;
