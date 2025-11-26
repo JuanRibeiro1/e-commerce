@@ -53,10 +53,6 @@ jest.mock("../../contexts/AuthContext", () => ({
   useAuth: () => ({ token: "fake-token-123" }),
 }));
 
-jest.mock("react-router-dom", () => ({
-  Link: ({ children }) => <a>{children}</a>,
-  useNavigate: () => jest.fn(),
-}));
 
 global.alert = jest.fn();
 

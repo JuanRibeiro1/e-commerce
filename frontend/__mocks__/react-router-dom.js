@@ -1,6 +1,4 @@
 module.exports = {
-  Link: ({ children }) => children,
+  Link: ({ children }) => <a>{children}</a>,
   useNavigate: () => jest.fn(),
-  useParams: () => ({}),
-  useLocation: () => ({ pathname: "/" }),
 };
